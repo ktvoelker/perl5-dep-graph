@@ -81,6 +81,7 @@ for my $file (@ARGV) {
 
 for my $name (keys %names) {
   my $code = $names{$name};
+  $name =~ s/::/::\\n/g;
   my $fmt = '';
   unless ($out_deg{$code}) {
     $fmt = ',shape="box"';
