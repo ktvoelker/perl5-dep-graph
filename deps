@@ -1,0 +1,92 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+
+sub cat ($) {
+  my ($file) = @_;
+  open my $fh, '<', $file;
+  local $/;
+  my $text = <$fh>;
+  close $fh;
+  return $text;
+}
+
+my %names;
+
+my $count = 0;
+
+sub fix_name ($) {
+  my ($name) = @_;
+  if (exists $names{$name}) {
+    return $names{$name};
+  }
+  else {
+    my $ret = sprintf 'n%d', $count;
+    $count += 1;
+    $names{$name} = $ret;
+    return $ret;
+  }
+}
+
+sub base ($) {
+  my ($name) = @_;
+  $name =~ s/::.*//;
+  return $name;
+}
+
+sub trunc ($) {
+  my ($name) = @_;
+  my @parts = split '::', $name;
+  return join('::', grep(/^[A-Z]/, @parts));
+}
+
+my %skip = qw/CORE 1 SUPER 1 UNIVERSAL 1/;
+
+print "digraph Deps {\n";
+
+my (%in_deg, %out_deg, %edges);
+
+sub incr ($$) {
+  my ($deg, $n) = @_;
+  if (exists $deg->{$n}) {
+    $deg->{$n} += 1;
+  }
+  else {
+    $deg->{$n} = 1;
+  }
+}
+
+for my $file (@ARGV) {
+  my $text = cat $file;
+  my $from = $file;
+  $from =~ s/\.pm$//;
+  $from =~ s/\//::/g;
+  $from = fix_name($from);
+  while ($text =~ s/((\w+::)+\w+)//) {
+    my $to = $1;
+    $to = trunc($to);
+    next if exists $skip{base $to};
+    $to = fix_name($to);
+    next if $from eq $to;
+    incr(\%in_deg, $to);
+    incr(\%out_deg, $from);
+    my $p = sprintf '%s%s -> %s;%s', "\t", $from, $to, "\n";
+    unless (exists $edges{$p}) {
+      $edges{$p} = 1;
+      print $p;
+    }
+  }
+}
+
+for my $name (keys %names) {
+  my $code = $names{$name};
+  my $fmt = '';
+  unless ($out_deg{$code}) {
+    $fmt = ',shape="box"';
+  }
+  printf '%s%s [label="%s"%s];%s', "\t", $code, $name, $fmt, "\n";
+}
+
+print "}\n";
+
