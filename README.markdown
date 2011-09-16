@@ -2,20 +2,20 @@
 Perl 5 Module Dependency Grapher
 ================================
 
-This tool will generate a dependency graph of your Perl modules.
+This tool will generate a dependency graph of your Perl modules in Graphviz format.
 
-I run it like this (in the directory containing the modules):
+Required command-line flags:
 
-    ./deps -p BaseName -d . > out.dot
+* `-d`: the directory containing the module files
 
-Note that `BaseName` is the common first component of all your module names.
+Optional command-line flags:
 
-I will write more documentation on the supported options eventually. For now, take a
-look at the comments near the top of the program.
+* `-o`: the name of the output file (default to standard output)
 
-The output can be turned by Graphviz into an image:
+* `-p`: a prefix which a module's name must have for it to be included
 
-    dot -T png -o out.png out.dot
+* `-x`: the name of a file containing a list of names of modules to exclude,
+  one per line
 
 Leaf nodes have rectangular outlines, while other nodes have elliptical outlines.
 This is the result of the original purpose of this tool: planning a port of a
@@ -23,9 +23,10 @@ complicated Perl program to another object-oriented language.
 
 Caveats:
 
-* Run this from the root directory of your project. The tool assumes the usual
-convention of one module per file and determines the file's module name by transforming
-the file name as given on the command line.
+* If an inclusion prefix is given (with `-p`), it must not contain any double
+  colons.  This is a silly limitation which I ought to fix.
+
+* The usual convention of one module per file is assumed.
 
 * References to modules with no double colons in their names will be missed.
 
