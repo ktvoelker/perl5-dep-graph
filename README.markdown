@@ -2,9 +2,16 @@
 Perl 5 Module Dependency Grapher
 ================================
 
-This tool will generate a dependency graph of your Perl modules. I run it like this:
+This tool will generate a dependency graph of your Perl modules.
 
-    ./deps `find ./ -name '*.pm'` > out.dot
+I run it like this (in the directory containing the modules):
+
+    ./deps -p BaseName -d . > out.dot
+
+Note that `BaseName` is the common first component of all your module names.
+
+I will write more documentation on the supported options eventually. For now, take a
+look at the comments near the top of the program.
 
 The output can be turned by Graphviz into an image:
 

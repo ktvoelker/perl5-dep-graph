@@ -3,6 +3,41 @@
 use strict;
 use warnings;
 
+use Getopt::Std;
+
+my %opts;
+
+##
+# OPTIONS
+# -p: prefix of modules to include
+# -x: name of file containing modules to exclude
+# -d: directory containing module files
+# -o: name of output file
+##
+getopts('p:x:d:o:', \%opts);
+
+my $prefix = $opts{'p'};
+my $exclude_file = $opts{'x'};
+my $dir = $opts{'d'};
+
+# TODO use this option
+my $output_file = $opts{'o'};
+
+# TODO validate options
+
+sub find_files ($) {
+  my ($dir) = @_;
+  opendir my ($dh), $dir;
+  my @entries = readdir $dh;
+  closedir $dh;
+  @entries = map { "$dir/$_" } grep /^[^\.]/, @entries;
+  my @files = grep { -f && /\.pm$/ } @entries;
+  my @subdirs = grep { -d } @entries;
+  return (@files, map { find_files($_) } @subdirs);
+}
+
+my @files = find_files $dir;
+
 sub cat ($) {
   my ($file) = @_;
   open my $fh, '<', $file;
@@ -10,6 +45,13 @@ sub cat ($) {
   my $text = <$fh>;
   close $fh;
   return $text;
+}
+
+my %exclude;
+if ($exclude_file) {
+  for my $line (grep /\S/, split /\n/, cat $exclude_file) {
+    $exclude{$line} = 1;
+  }
 }
 
 my %names;
@@ -57,16 +99,19 @@ sub incr ($$) {
   }
 }
 
-for my $file (@ARGV) {
+for my $file (@files) {
   my $text = cat $file;
-  my $from = $file;
-  $from =~ s/\.pm$//;
-  $from =~ s/\//::/g;
+  $text =~ /^ \s* package \s+ ((\w+::)+\w+) \s* ;/mx;
+  my $from = $1;
+  next unless $from;
   $from = fix_name($from);
   while ($text =~ s/((\w+::)+\w+)//) {
     my $to = $1;
     $to = trunc($to);
-    next if exists $skip{base $to};
+    my $base = base $to;
+    next if exists $skip{$base};
+    next if $prefix && $prefix ne $base;
+    next if exists $exclude{$to};
     $to = fix_name($to);
     next if $from eq $to;
     incr(\%in_deg, $to);
@@ -81,6 +126,7 @@ for my $file (@ARGV) {
 
 for my $name (keys %names) {
   my $code = $names{$name};
+  $name =~ s/^\w+::// if $prefix;
   $name =~ s/::/::\\n/g;
   my $fmt = '';
   unless ($out_deg{$code}) {
