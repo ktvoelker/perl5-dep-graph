@@ -19,11 +19,17 @@ getopts('p:x:d:o:', \%opts);
 my $prefix = $opts{'p'};
 my $exclude_file = $opts{'x'};
 my $dir = $opts{'d'};
-
-# TODO use this option
 my $output_file = $opts{'o'};
 
-# TODO validate options
+die "No directory given.\n" unless $dir;
+
+my $output;
+if ($output_file && $output_file ne '-') {
+  open $output, '>', $output_file;
+}
+else {
+  $output = \*STDOUT;
+}
 
 sub find_files ($) {
   my ($dir) = @_;
@@ -85,7 +91,7 @@ sub trunc ($) {
 
 my %skip = qw/CORE 1 SUPER 1 UNIVERSAL 1/;
 
-print "digraph Deps {\n";
+print $output "digraph Deps {\n";
 
 my (%in_deg, %out_deg, %edges);
 
@@ -119,7 +125,7 @@ for my $file (@files) {
     my $p = sprintf '%s%s -> %s;%s', "\t", $from, $to, "\n";
     unless (exists $edges{$p}) {
       $edges{$p} = 1;
-      print $p;
+      print $output $p;
     }
   }
 }
@@ -132,8 +138,8 @@ for my $name (keys %names) {
   unless ($out_deg{$code}) {
     $fmt = ',shape="box"';
   }
-  printf '%s%s [label="%s"%s];%s', "\t", $code, $name, $fmt, "\n";
+  printf $output '%s%s [label="%s"%s];%s', "\t", $code, $name, $fmt, "\n";
 }
 
-print "}\n";
+print $output "}\n";
 
